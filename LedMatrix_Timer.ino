@@ -13,6 +13,10 @@
 #define CS_PIN 3
 #define MAX_ZONES 2
 
+//D 11
+//CS 3
+//CLK 13
+
 #define START_TIME 10
 
 #define trigPin 6
