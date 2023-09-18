@@ -35,7 +35,7 @@ int TIME_A = 30;
 double wait = millis();
 int timeA = TIME_A;
 int timeB = 60 - TIME_A;
-int reps = 0;
+int reps = 1;
 int stop = 0;
 
 int fase = 0;   //stato della macchina a stati
@@ -43,7 +43,7 @@ int fase = 0;   //stato della macchina a stati
 long durata, cm;
 
 int nota = 600;
-int durata_nota = 250;
+int durata_nota = 220;
 
 void setup() {
   delay(1000);
