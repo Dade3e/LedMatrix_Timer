@@ -12,13 +12,16 @@
 #define MAX_DEVICES 4
 #define CS_PIN 3
 #define MAX_ZONES 2
-#define START_TIME 5
+
+#define START_TIME 10
 
 #define trigPin 6
 #define echoPin 7
 
 #define b_up 8
 #define b_down 9
+
+#define buzzerPin 2
 
 // Create a new instance of the MD_Parola class with hardware SPI connection
 MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
@@ -35,7 +38,11 @@ int fase = 0;   //stato della macchina a stati
 
 long durata, cm;
 
+int nota = 600;
+int durata_nota = 250;
+
 void setup() {
+  delay(1000);
 	// Intialize the object
 	myDisplay.begin(MAX_ZONES);
   myDisplay.setZone(0, 0, 1);
@@ -59,6 +66,8 @@ void setup() {
   pinMode(b_up, INPUT_PULLUP);
   pinMode(b_down, INPUT_PULLUP);
 
+  pinMode(buzzerPin, INPUT);
+
   TIME_A = EEPROM.read(0);
   if(TIME_A == 0)
     TIME_A = 30;
@@ -73,6 +82,8 @@ void inizio(int i){
   itoa( i, t_str, 10 );
   myDisplay.displayZoneText(0, t_str, PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT);
 
+  
+
   if (myDisplay.displayAnimate())
   {    
       
@@ -86,26 +97,62 @@ void inizio(int i){
       }
     }
   }
-  delay(1000);
+  if(i <= 3){
+    pinMode(buzzerPin, OUTPUT);
+    tone(buzzerPin, nota, durata_nota);
+    delay(durata_nota);
+    noTone(buzzerPin);
+    delay(1000-durata_nota);
+  }
+  else if(i == 0){
+    delay(100);
+    tone(buzzerPin, nota, durata_nota);
+    delay(durata_nota);
+    noTone(buzzerPin);
+    delay(900-durata_nota);
+  }
+  else{
+    delay(1000);
+  }
 
 }
 
 void allena(){
-  char t_str[8];
-  itoa( timeA, t_str, 10 );
-
-  myDisplay.displayZoneText(0, t_str, PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT);
-
-
-  String reps_s = String(reps)+"s";
-  
-  //myDisplay.displayZoneText(1, "S", PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT);
-  
-
-  myDisplay.displayZoneText(1, reps_s.c_str(), PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT); 
 
   if(millis() - wait >= 1000){
     wait = millis();
+    
+    String reps_s = String(reps)+"s";
+
+    myDisplay.displayZoneText(1, reps_s.c_str(), PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT); 
+
+    char t_str[8];
+    itoa( timeA, t_str, 10 );
+
+    myDisplay.displayZoneText(0, t_str, PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT);
+
+    if (myDisplay.displayAnimate())
+    {    
+       
+      
+      for (uint8_t i=0; i<MAX_ZONES; i++)
+      {
+        if (myDisplay.getZoneStatus(i))
+        {
+          // do something with the parameters for the animation then reset it
+          myDisplay.displayReset(i);
+        }
+      }
+    }
+
+    if(timeA == TIME_A){
+      suona2();    
+    }else{
+      suona();
+    }
+
+    
+    pinMode(buzzerPin, INPUT);  
     
     timeA--;
 
@@ -114,6 +161,26 @@ void allena(){
       timeB = 60-TIME_A;
       fase = 1;
     }
+  }
+  
+}
+
+void riposa(){
+  
+
+  
+
+  if(millis() - wait >= 1000){
+    wait = millis();
+    
+    String reps_s = String(reps)+"r";
+
+    myDisplay.displayZoneText(1, reps_s.c_str(), PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT); 
+
+    char t_str[8];
+    itoa( timeB, t_str, 10 );
+
+    myDisplay.displayZoneText(0, t_str, PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT);
 
     if (myDisplay.displayAnimate())
     {    
@@ -128,25 +195,15 @@ void allena(){
         }
       }
     }
-  }
-}
+    if(timeB == 60-TIME_A){
+      suona2();    
+    }else{
+      suona();      
+    }
 
-void riposa(){
-  char t_str[8];
-  itoa( timeB, t_str, 10 );
-
-  myDisplay.displayZoneText(0, t_str, PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT);
-
-  String reps_s = String(reps)+"r";
-  
-  //myDisplay.displayZoneText(1, "S", PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT);
-  
-
-  myDisplay.displayZoneText(1, reps_s.c_str(), PA_CENTER, 100, 0, PA_NO_EFFECT, PA_NO_EFFECT); 
-
-  if(millis() - wait >= 1000){
-    wait = millis();
     
+    pinMode(buzzerPin, INPUT);
+
     timeB--;
 
     if(timeB <= 0){
@@ -155,20 +212,6 @@ void riposa(){
       fase = 0;
 
       reps += 1;
-    }
-
-    if (myDisplay.displayAnimate())
-    {    
-       
-      
-      for (uint8_t i=0; i<MAX_ZONES; i++)
-      {
-        if (myDisplay.getZoneStatus(i))
-        {
-          // do something with the parameters for the animation then reset it
-          myDisplay.displayReset(i);
-        }
-      }
     }
   }
 }
@@ -225,6 +268,32 @@ void controllo_pulsanti(){
     }
   }
   EEPROM.update(0, TIME_A);
+}
+
+
+
+void suona(){
+  noTone(buzzerPin);
+  if(timeA <= 3 || timeB <= 3){
+    pinMode(buzzerPin, OUTPUT);
+    tone(buzzerPin, nota, durata_nota);
+    delay(durata_nota);
+    noTone(buzzerPin);
+  }
+}
+
+void suona2(){
+  noTone(buzzerPin);
+  pinMode(buzzerPin, OUTPUT);
+  tone(buzzerPin, nota, durata_nota);
+  delay(durata_nota);
+  noTone(buzzerPin);
+  delay(100);
+  noTone(buzzerPin);
+  pinMode(buzzerPin, OUTPUT);
+  tone(buzzerPin, nota, durata_nota);
+  delay(durata_nota);
+  noTone(buzzerPin);
 }
 
 void loop() {
